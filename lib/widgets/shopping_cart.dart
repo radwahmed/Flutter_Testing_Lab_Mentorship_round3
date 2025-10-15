@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_testing_lab/utils/cart_controller.dart';
 
 class CartItem {
   final String id;
@@ -14,6 +15,8 @@ class CartItem {
     this.quantity = 1,
     this.discount = 0.0,
   });
+
+  double get totalPrice => (price * quantity) * (1 - discount);
 }
 
 class ShoppingCart extends StatefulWidget {
@@ -24,64 +27,12 @@ class ShoppingCart extends StatefulWidget {
 }
 
 class _ShoppingCartState extends State<ShoppingCart> {
-  final List<CartItem> _items = [];
+  final CartController cart = CartController();
 
-  void addItem(String id, String name, double price, {double discount = 0.0}) {
-    setState(() {
-      _items.add(
-        CartItem(id: id, name: name, price: price, discount: discount),
-      );
-    });
-  }
-
-  void removeItem(String id) {
-    setState(() {
-      _items.removeWhere((item) => item.id == id);
-    });
-  }
-
-  void updateQuantity(String id, int newQuantity) {
-    setState(() {
-      final index = _items.indexWhere((item) => item.id == id);
-      if (index != -1) {
-        if (newQuantity <= 0) {
-          _items.removeAt(index);
-        } else {
-          _items[index].quantity = newQuantity;
-        }
-      }
-    });
-  }
-
-  void clearCart() {
-    setState(() {
-      _items.clear();
-    });
-  }
-
-  double get subtotal {
-    double total = 0;
-    for (var item in _items) {
-      total += item.price * item.quantity;
-    }
-    return total;
-  }
-
-  double get totalDiscount {
-    double discount = 0;
-    for (var item in _items) {
-      discount += item.discount * item.quantity;
-    }
-    return discount;
-  }
-
-  double get totalAmount {
-    return subtotal + totalDiscount;
-  }
-
-  int get totalItems {
-    return _items.fold(0, (sum, item) => sum + item.quantity);
-  }
+  double get subtotal => cart.subtotal;
+  double get totalDiscount => cart.totalDiscount;
+  double get totalAmount => cart.totalAmount;
+  int get totalItems => cart.totalItems;
 
   @override
   Widget build(BuildContext context) {
@@ -91,22 +42,35 @@ class _ShoppingCartState extends State<ShoppingCart> {
           spacing: 8,
           children: [
             ElevatedButton(
-              onPressed: () =>
-                  addItem('1', 'Apple iPhone', 999.99, discount: 0.1),
+              onPressed: () {
+                setState(() {
+                  cart.addItem('1', 'Apple iPhone', 999.99, discount: 0.1);
+                });
+              },
               child: const Text('Add iPhone'),
             ),
             ElevatedButton(
-              onPressed: () =>
-                  addItem('2', 'Samsung Galaxy', 899.99, discount: 0.15),
+              onPressed: () {
+                setState(() {
+                  cart.addItem('2', 'Samsung Galaxy', 899.99, discount: 0.15);
+                });
+              },
               child: const Text('Add Galaxy'),
             ),
             ElevatedButton(
-              onPressed: () => addItem('3', 'iPad Pro', 1099.99),
+              onPressed: () {
+                setState(() {
+                  cart.addItem('3', 'iPad Pro', 1099.99);
+                });
+              },
               child: const Text('Add iPad'),
             ),
             ElevatedButton(
-              onPressed: () =>
-                  addItem('1', 'Apple iPhone', 999.99, discount: 0.1),
+              onPressed: () {
+                setState(() {
+                  cart.addItem('1', 'Apple iPhone', 999.99, discount: 0.1);
+                });
+              },
               child: const Text('Add iPhone Again'),
             ),
           ],
@@ -127,7 +91,11 @@ class _ShoppingCartState extends State<ShoppingCart> {
                 children: [
                   Text('Total Items: $totalItems'),
                   ElevatedButton(
-                    onPressed: clearCart,
+                    onPressed: () {
+                      setState(() {
+                        cart.clearCart();
+                      });
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                     ),
@@ -151,16 +119,14 @@ class _ShoppingCartState extends State<ShoppingCart> {
         ),
         const SizedBox(height: 16),
 
-        _items.isEmpty
+        cart.items.isEmpty
             ? const Center(child: Text('Cart is empty'))
             : ListView.builder(
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
-                itemCount: _items.length,
+                itemCount: cart.items.length,
                 itemBuilder: (context, index) {
-                  final item = _items[index];
-                  final itemTotal = item.price * item.quantity;
-
+                  final item = cart.items[index];
                   return Card(
                     child: ListTile(
                       title: Text(item.name),
@@ -175,15 +141,20 @@ class _ShoppingCartState extends State<ShoppingCart> {
                               'Discount: ${(item.discount * 100).toStringAsFixed(0)}%',
                               style: const TextStyle(color: Colors.green),
                             ),
-                          Text('Item Total: \$${itemTotal.toStringAsFixed(2)}'),
+                          Text(
+                            'Item Total: \$${item.totalPrice.toStringAsFixed(2)}',
+                          ),
                         ],
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            onPressed: () =>
-                                updateQuantity(item.id, item.quantity - 1),
+                            onPressed: () {
+                              setState(() {
+                                cart.updateQuantity(item.id, item.quantity - 1);
+                              });
+                            },
                             icon: const Icon(Icons.remove),
                           ),
                           Container(
@@ -198,12 +169,19 @@ class _ShoppingCartState extends State<ShoppingCart> {
                             child: Text('${item.quantity}'),
                           ),
                           IconButton(
-                            onPressed: () =>
-                                updateQuantity(item.id, item.quantity + 1),
+                            onPressed: () {
+                              setState(() {
+                                cart.updateQuantity(item.id, item.quantity + 1);
+                              });
+                            },
                             icon: const Icon(Icons.add),
                           ),
                           IconButton(
-                            onPressed: () => removeItem(item.id),
+                            onPressed: () {
+                              setState(() {
+                                cart.removeItem(item.id);
+                              });
+                            },
                             icon: const Icon(Icons.delete),
                             color: Colors.red,
                           ),
